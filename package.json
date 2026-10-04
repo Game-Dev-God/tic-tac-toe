@@ -1,0 +1,16 @@
+{
+    "name": "tic-tac-toe-original",
+    "version": "1.0.0",
+    "description": "",
+    "license": "ISC",
+    "author": "Kratos",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "test": "node --test",
+        "dev": "node src/infrastructure/server.js"
+    },
+    "dependencies": {
+        "ws": "^8.21.3"
+    }
+}
