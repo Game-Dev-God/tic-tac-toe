@@ -1,18 +1,18 @@
-import { BOARD_SIZE, WINNING_LINES } from "./constants.js";
+import { DEFAULT_BOARD_SIZE, WINNING_LINES } from "./constants.js";
 
 
 export class Board
 {
     constructor()
     {
-        this._cells = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
+        this._cells = Array(DEFAULT_BOARD_SIZE * DEFAULT_BOARD_SIZE).fill(null);
         this._remainingCells = this._cells.length;
         this.lastIndex = null;
     }
 
     get size()
     {
-        return BOARD_SIZE;
+        return DEFAULT_BOARD_SIZE;
     }
 
     getCell(index)
@@ -41,7 +41,7 @@ export class Board
             return false;
         }
 
-        return WINNING_LINES[BOARD_SIZE].some(
+        return WINNING_LINES[DEFAULT_BOARD_SIZE].some(
             (line) =>
             {
                 return line.every(
