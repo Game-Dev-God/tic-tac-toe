@@ -6,13 +6,12 @@ export const MARKS =
 };
 
 
-export const MOVE_RESULT =
+export const RESULT_TYPES =
 {
-    SWITCH_TURN: 0,
+    MOVE: 0,
     WIN: 1,
     DRAW: 2,
-    INVALID: 3,
-    WRONG_TURN: 4
+    OCCUPIED: 3
 };
 
 
