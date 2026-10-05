@@ -5,14 +5,15 @@ export class Board
 {
     constructor()
     {
-        this._cells = Array(DEFAULT_BOARD_SIZE * DEFAULT_BOARD_SIZE).fill(null);
+        this._size = DEFAULT_BOARD_SIZE;
+        this._cells = Array(this._size * this._size).fill(null);
         this._remainingCells = this._cells.length;
         this.lastIndex = null;
     }
 
     get size()
     {
-        return DEFAULT_BOARD_SIZE;
+        return this._size;
     }
 
     getCell(index)
@@ -41,7 +42,7 @@ export class Board
             return false;
         }
 
-        return WINNING_LINES[DEFAULT_BOARD_SIZE].some(
+        return WINNING_LINES[this._size].some(
             (line) =>
             {
                 return line.every(
