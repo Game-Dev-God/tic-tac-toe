@@ -18,7 +18,7 @@ export const MOVE_RESULT =
 
 export const BOARD_SIZES = [3, 4];
 
-export const BOARD_SIZE = BOARD_SIZES[0];
+export const DEFAULT_BOARD_SIZE = BOARD_SIZES[0];
 
 
 export const WINNING_LINES =
