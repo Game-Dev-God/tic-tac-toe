@@ -37,8 +37,6 @@ export class Game
 
         this.result.index = boardIndex;
         this.result.mark = player.mark;
-        this.result.winner = null;
-
         if (!this._board.setCell(boardIndex, player.mark))
         {
             this.result.type = RESULT_TYPES.OCCUPIED;
