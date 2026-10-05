@@ -1,5 +1,5 @@
 import { Game } from "../../domain/Game.js";
-import { PLAYERS_PER_GAME } from "../../domain/constants.js";
+import { PLAYERS_PER_GAME, RESULT_TYPES } from "../../domain/constants.js";
 
 
 export class Match
@@ -47,9 +47,49 @@ export class Match
 
         if (!this._game.isTurn(slotId))
         {
-            return null;
+            return;
         }
 
-        return this._game.move(boardIndex);
+        const result = this._game.move(boardIndex);
+
+        this._handleResult(result);
+    }
+
+    _handleResult(result)
+    {
+        switch (result.type)
+        {
+            case RESULT_TYPES.MOVE:
+                this._handleMoveResult(result);
+                break;
+
+            case RESULT_TYPES.WIN:
+                this._handleWinResult(result);
+                break;
+
+            case RESULT_TYPES.DRAW:
+                this._handleDrawResult(result);
+                break;
+
+            case RESULT_TYPES.OCCUPIED:
+                this._handleOccupiedResult(result);
+                break;
+        }
+    }
+
+    _handleMoveResult(result)
+    {
+    }
+
+    _handleWinResult(result)
+    {
+    }
+
+    _handleDrawResult(result)
+    {
+    }
+
+    _handleOccupiedResult(result)
+    {
     }
 }
