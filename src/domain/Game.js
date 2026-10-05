@@ -3,7 +3,7 @@ import { Player } from "./Player.js";
 import
 {
     MARKS,
-    MOVE_RESULT
+    RESULT_TYPES
 }
 from "./constants.js";
 
@@ -21,37 +21,54 @@ export class Game
         ];
 
         this._currentSlot = 0;
+
+        this.result =
+        {
+            type: null,
+            index: null,
+            mark: null,
+            nextTurn: null
+        };
     }
 
-    move(slotId, boardIndex)
+    move(boardIndex)
     {
-        if (slotId !== this._currentSlot)
-        {
-            return MOVE_RESULT.WRONG_TURN;
-        }
+        const player = this._players[this._currentSlot];
 
-        const player = this._players[slotId];
+        this.result.index = boardIndex;
+        this.result.mark = player.mark;
+        this.result.winner = null;
 
         if (!this._board.setCell(boardIndex, player.mark))
         {
-            return MOVE_RESULT.INVALID;
+            this.result.type = RESULT_TYPES.OCCUPIED;
+            this.result.nextTurn = player.mark;
+
+            return;
         }
 
         player.incMove();
 
         if (this._board.hasWinner(player))
         {
-            return MOVE_RESULT.WIN;
+            this.result.type = RESULT_TYPES.WIN;
+            this.result.nextTurn = null;
+
+            return;
         }
 
         if (this._board.isFull())
         {
-            return MOVE_RESULT.DRAW;
+            this.result.type = RESULT_TYPES.DRAW;
+            this.result.nextTurn = null;
+
+            return;
         }
 
         this._switchTurn();
 
-        return MOVE_RESULT.SWITCH_TURN;
+        this.result.type = RESULT_TYPES.MOVE;
+        this.result.nextTurn = this._players[this._currentSlot].mark;
     }
 
     _switchTurn()
