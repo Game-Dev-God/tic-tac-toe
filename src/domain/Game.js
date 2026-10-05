@@ -26,6 +26,11 @@ export class Game
         };
     }
 
+    isTurn(slotId)
+    {
+        return slotId === this._currentSlot;
+    }
+
     move(boardIndex)
     {
         const player = this._players[this._currentSlot];
