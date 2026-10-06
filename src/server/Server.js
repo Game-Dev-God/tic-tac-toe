@@ -114,7 +114,7 @@ export class Server
 
         connection.setUserId(user.id);
 
-        this._joinMatch(user.id);
+        this._joinMatch(connection);
     }
 
     _handleMove(connection, data)
@@ -142,14 +142,21 @@ export class Server
             return;
         }
 
-        match.move(
+        match.makeMove(
             userId,
             data.index
         );
     }
 
-    _joinMatch(userId)
+    _joinMatch(connection)
     {
+        const userId = connection.userId;
+
+        if (userId === null)
+        {
+            return;
+        }
+
         const user = this._users.get(userId);
 
         if (user === undefined)
@@ -159,7 +166,7 @@ export class Server
 
         const match = this._matches.findMatch();
 
-        match.addPlayer(userId);
+        match.addPlayer(connection);
 
         user.setMatchId(match.id);
     }
