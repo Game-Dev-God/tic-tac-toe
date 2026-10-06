@@ -105,7 +105,6 @@ export class Match extends EventEmitter
 
         this._players.clear();
         this._game = null;
-        this._finished = false;
         this._destroyed = true;
 
         this.emit("destroyed");
