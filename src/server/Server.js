@@ -25,7 +25,12 @@ export class Server
         return this._transport.stop();
     }
 
-    send(userId, data)
+    getUser(userId)
+    {
+        return this._users.get(userId);
+    }
+
+    getUserConnection(userId)
     {
         const user = this._users.get(userId);
 
@@ -34,9 +39,14 @@ export class Server
             return;
         }
 
-        const connection = this._transport.getConnection(
+        return this._transport.getConnection(
             user.connectionId
         );
+    }
+
+    send(userId, data)
+    {
+        const connection = this.getUserConnection(userId);
 
         if (connection === undefined)
         {
