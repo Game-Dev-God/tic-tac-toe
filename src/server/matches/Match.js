@@ -1,12 +1,19 @@
+import { EventEmitter } from "node:events";
+
 import { Game } from "../../domain/Game.js";
 import { PLAYERS_PER_GAME, RESULT_TYPES } from "../../domain/constants.js";
+import { MESSAGE_TYPES } from "../../application/messages/constants.js";
+import { createMessage } from "../messages/message.js";
 
 
-export class Match
+export class Match extends EventEmitter
 {
-    constructor(id)
+    constructor(id, server)
     {
+        super();
+
         this.id = id;
+        this._server = server;
         this._players = new Map();
         this._game = null;
         this._nextSlotId = 0;
@@ -22,8 +29,9 @@ export class Match
         return this._players.has(userId);
     }
 
-    addPlayer(userId)
+    addPlayer(connection)
     {
+        const userId = connection.userId;
         const players = this._players;
 
         if (players.has(userId))
@@ -35,14 +43,23 @@ export class Match
 
         players.set(userId, slotId);
 
+        connection.join(this.id);
+
         if (players.size === PLAYERS_PER_GAME)
         {
             this._game = new Game();
+
+            this.emit("started");
         }
     }
 
     makeMove(userId, boardIndex)
     {
+        if (this._game === null)
+        {
+            return;
+        }
+
         const slotId = this._players.get(userId);
 
         if (!this._game.isTurn(slotId))
@@ -57,39 +74,36 @@ export class Match
 
     _handleResult(result)
     {
+        let messageType;
+
         switch (result.type)
         {
             case RESULT_TYPES.MOVE:
-                this._handleMoveResult(result);
+                messageType = MESSAGE_TYPES.MOVE;
                 break;
 
             case RESULT_TYPES.WIN:
-                this._handleWinResult(result);
+                messageType = MESSAGE_TYPES.WIN;
                 break;
 
             case RESULT_TYPES.DRAW:
-                this._handleDrawResult(result);
+                messageType = MESSAGE_TYPES.DRAW;
                 break;
 
             case RESULT_TYPES.OCCUPIED:
-                this._handleOccupiedResult(result);
+                messageType = MESSAGE_TYPES.OCCUPIED;
                 break;
         }
-    }
 
-    _handleMoveResult(result)
-    {
-    }
+        const payload =
+        {
+            index: result.index,
+            mark: result.mark,
+            nextTurn: result.nextTurn
+        };
 
-    _handleWinResult(result)
-    {
-    }
+        const message = createMessage(messageType, payload);
 
-    _handleDrawResult(result)
-    {
-    }
-
-    _handleOccupiedResult(result)
-    {
+        this._server.broadcast(this.id, message);
     }
 }
