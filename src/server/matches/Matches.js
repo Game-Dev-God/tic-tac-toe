@@ -36,6 +36,11 @@ export class Matches
             this._activateMatch(match);
         });
 
+        match.once("finished", () =>
+        {
+            this.removeActiveMatch(match.id);
+        });
+
         return match;
     }
 
