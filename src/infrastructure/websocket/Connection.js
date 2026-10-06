@@ -1,10 +1,12 @@
 export class Connection
 {
-    constructor(id, socket)
+    constructor(id, socket, transport)
     {
         this._id = id;
         this._socket = socket;
+        this._transport = transport;
         this._userId = null;
+        this._rooms = new Set();
     }
 
     get id()
@@ -17,9 +19,34 @@ export class Connection
         return this._userId;
     }
 
+    getRooms()
+    {
+        return this._rooms;
+    }
+
     setUserId(userId)
     {
         this._userId = userId;
+    }
+
+    join(roomId)
+    {
+        this._transport.join(this, roomId);
+    }
+
+    leave(roomId)
+    {
+        this._transport._leave(this, roomId);
+    }
+
+    _addRoom(roomId)
+    {
+        this._rooms.add(roomId);
+    }
+
+    _removeRoom(roomId)
+    {
+        this._rooms.delete(roomId);
     }
 
     send(data)
@@ -27,8 +54,8 @@ export class Connection
         this._socket.send(data);
     }
 
-    close()
+    close(code)
     {
-        this._socket.close();
+        this._socket.close(code);
     }
 }
