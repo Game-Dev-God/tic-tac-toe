@@ -27,27 +27,14 @@ export class Matches
     createWaitingMatch()
     {
         const id = randomUUID();
-        const match = new Match(id,this._server);
+        const match = new Match(id, this._server);
 
         this._waiting.set(id, match);
 
         match.once("started", () =>
-            {
-                this._activateMatch(match);
-            }
-        );
-
-        match.once("timeout", () =>
-            {
-                this.removeWaitingMatch(match.id);
-            }
-        );
-
-        match.once("finished", () =>
-            {
-                this.removeActiveMatch(match.id);
-            }
-        );
+        {
+            this._activateMatch(match);
+        });
 
         return match;
     }
@@ -94,9 +81,6 @@ export class Matches
     {
         this.removeWaitingMatch(match.id);
 
-        this._active.set(
-            match.id,
-            match
-        );
+        this._active.set(match.id, match);
     }
 }
