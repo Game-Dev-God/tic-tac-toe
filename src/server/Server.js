@@ -46,6 +46,11 @@ export class Server
         connection.send(data);
     }
 
+    broadcast(roomId, data)
+    {
+        this._transport.broadcast(roomId, data);
+    }
+
     _initialize()
     {
         const transport = this._transport;
