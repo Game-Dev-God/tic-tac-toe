@@ -17,6 +17,8 @@ export class Match extends EventEmitter
         this._players = new Map();
         this._game = null;
         this._nextSlotId = 0;
+        this._finished = false;
+        this._destroyed = false;
     }
 
     _getNextSlotId()
@@ -31,10 +33,15 @@ export class Match extends EventEmitter
 
     addPlayer(connection)
     {
+        if (this._finished || this._destroyed)
+        {
+            return;
+        }
+
         const userId = connection.userId;
         const players = this._players;
 
-        if (players.has(userId))
+        if (players.has(userId) || players.size === PLAYERS_PER_GAME)
         {
             return;
         }
@@ -55,7 +62,7 @@ export class Match extends EventEmitter
 
     makeMove(userId, boardIndex)
     {
-        if (this._game === null)
+        if (this._game === null || this._finished || this._destroyed)
         {
             return;
         }
@@ -70,6 +77,38 @@ export class Match extends EventEmitter
         const result = this._game.move(boardIndex);
 
         this._handleResult(result);
+    }
+
+    destroy()
+    {
+        if (this._destroyed)
+        {
+            return;
+        }
+
+        for (const userId of this._players.keys())
+        {
+            const connection = this._server.getUserConnection(userId);
+
+            if (connection !== undefined)
+            {
+                connection.leave(this.id);
+            }
+
+            const user = this._server.getUser(userId);
+
+            if (user !== undefined && user.matchId === this.id)
+            {
+                user.setMatchId(null);
+            }
+        }
+
+        this._players.clear();
+        this._game = null;
+        this._finished = false;
+        this._destroyed = true;
+
+        this.emit("destroyed");
     }
 
     _handleResult(result)
@@ -105,5 +144,13 @@ export class Match extends EventEmitter
         const message = createMessage(messageType, payload);
 
         this._server.broadcast(this.id, message);
+
+        if (result.type === RESULT_TYPES.WIN ||
+            result.type === RESULT_TYPES.DRAW)
+        {
+            this._finished = true;
+
+            this.emit("finished");
+        }
     }
 }
