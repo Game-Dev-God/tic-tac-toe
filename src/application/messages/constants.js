@@ -4,6 +4,7 @@ export const MESSAGE_TYPES =
     TURN: "turn",
     WIN: "win",
     DRAW: "draw",
+    OCCUPIED: "occupied",
     SNAPSHOT: "snapshot",
     IDENTIFY: "identify"
 };
