@@ -36,8 +36,9 @@ export class Matches
             this._activateMatch(match);
         });
 
-        match.once("finished", () =>
+        match.once("destroyed", () =>
         {
+            this.removeWaitingMatch(match.id);
             this.removeActiveMatch(match.id);
         });
 
