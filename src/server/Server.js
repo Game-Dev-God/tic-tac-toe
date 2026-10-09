@@ -182,12 +182,18 @@ export class Server
 
         match.once("started", () =>
         {
-            user.setLastActivity(USER_ACTIVITY.PLAYING);
+            if (user.matchId === match.id)
+            {
+                user.setLastActivity(USER_ACTIVITY.PLAYING);
+            }
         });
 
         match.once("destroyed", () =>
         {
-            user.setLastActivity(USER_ACTIVITY.IDLE);
+            if (user.matchId === null)
+            {
+                user.setLastActivity(USER_ACTIVITY.IDLE);
+            }
         });
 
         match.addPlayer(connection);
