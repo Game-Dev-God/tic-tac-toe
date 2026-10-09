@@ -14,50 +14,14 @@ export class Matches
 
     findMatch()
     {
-        const waitingMatch = this._findWaitingMatch();
+        const match = this._findWaitingMatch();
 
-        if (waitingMatch !== undefined)
+        if (match !== undefined)
         {
-            return waitingMatch;
+            return match;
         }
 
-        return this.createWaitingMatch();
-    }
-
-    createWaitingMatch()
-    {
-        const id = randomUUID();
-        const match = new Match(id, this._server);
-
-        this._waiting.set(id, match);
-
-        match.once("started", () =>
-        {
-            this._activateMatch(match);
-        });
-
-        match.once("destroyed", () =>
-        {
-            this.removeWaitingMatch(match.id);
-            this.removeActiveMatch(match.id);
-        });
-
-        return match;
-    }
-
-    getWaitingMatch(id)
-    {
-        return this._waiting.get(id);
-    }
-
-    hasWaitingMatch(id)
-    {
-        return this._waiting.has(id);
-    }
-
-    removeWaitingMatch(id)
-    {
-        return this._waiting.delete(id);
+        return this._createMatch();
     }
 
     getActiveMatch(id)
@@ -65,28 +29,54 @@ export class Matches
         return this._active.get(id);
     }
 
-    hasActiveMatch(id)
+    _createMatch()
     {
-        return this._active.has(id);
-    }
+        const id = randomUUID();
+        const match = new Match(id, this._server);
 
-    removeActiveMatch(id)
-    {
-        return this._active.delete(id);
+        this._waiting.set(id, match);
+
+        const onWaitingDestroyed = () =>
+        {
+            this._removeWaitingMatch(id);
+        };
+
+        match.once("destroyed", onWaitingDestroyed);
+
+        match.once("started", () =>
+        {
+            this._activateMatch(match);
+
+            match.off("destroyed", onWaitingDestroyed);
+
+            match.once("destroyed", () =>
+            {
+                this._removeActiveMatch(id);
+            });
+        });
+
+        return match;
     }
 
     _findWaitingMatch()
     {
-        const waitingMatches = this._waiting.values();
-        const firstWaitingMatch = waitingMatches.next();
-
-        return firstWaitingMatch.value;
+        return this._waiting.values().next().value;
     }
 
     _activateMatch(match)
     {
-        this.removeWaitingMatch(match.id);
+        this._removeWaitingMatch(match.id);
 
         this._active.set(match.id, match);
+    }
+
+    _removeWaitingMatch(id)
+    {
+        return this._waiting.delete(id);
+    }
+
+    _removeActiveMatch(id)
+    {
+        return this._active.delete(id);
     }
 }
