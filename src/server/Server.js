@@ -1,4 +1,5 @@
 import { Users } from "./users/Users.js";
+import { USER_ACTIVITY } from "./users/constants.js";
 import { Matches } from "./matches/Matches.js";
 import { WebSocketTransport } from "../infrastructure/websocket/WebSocketTransport.js";
 import { MESSAGE_TYPES } from "../application/messages/constants.js";
@@ -176,8 +177,19 @@ export class Server
 
         const match = this._matches.findMatch();
 
-        match.addPlayer(connection);
-
         user.setMatchId(match.id);
+        user.setLastActivity(USER_ACTIVITY.WAITING_MATCH);
+
+        match.once("started", () =>
+        {
+            user.setLastActivity(USER_ACTIVITY.PLAYING);
+        });
+
+        match.once("destroyed", () =>
+        {
+            user.setLastActivity(USER_ACTIVITY.IDLE);
+        });
+
+        match.addPlayer(connection);
     }
 }
