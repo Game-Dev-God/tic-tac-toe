@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Server } from "../src/server/Server.js";
+import { User } from "../src/server/users/User.js";
 import { USER_ACTIVITY } from "../src/server/users/constants.js";
 
 
@@ -39,6 +40,17 @@ function addUserToServer(server, id, name)
 
     return { user, connection };
 }
+
+
+test("new users start idle", () =>
+{
+    const user = new User("user-1", "Player 1");
+
+    assert.equal(
+        user.lastActivity,
+        USER_ACTIVITY.IDLE
+    );
+});
 
 
 test("waiting users become playing when their match starts", () =>
