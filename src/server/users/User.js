@@ -1,4 +1,4 @@
-import { USER_STATUS } from "./constants.js";
+import { USER_ACTIVITY, USER_STATUS } from "./constants.js";
 
 
 export class User
@@ -9,6 +9,7 @@ export class User
         this.name = name;
         this.connectionId = null;
         this.status = USER_STATUS.OFFLINE;
+        this.lastActivity = USER_ACTIVITY.IDLE;
         this.matchId = null;
     }
 
@@ -20,6 +21,11 @@ export class User
     setStatus(status)
     {
         this.status = status;
+    }
+
+    setLastActivity(activity)
+    {
+        this.lastActivity = activity;
     }
 
     setMatchId(matchId)
