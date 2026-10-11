@@ -1,6 +1,6 @@
 import { Board } from "./Board.js";
 import { Player } from "./Player.js";
-import {MARKS, RESULT_TYPES } from "./constants.js";
+import { MARKS, RESULT_TYPES } from "./constants.js";
 
 
 export class Game
@@ -16,6 +16,7 @@ export class Game
         ];
 
         this._currentSlot = 0;
+        this._isFinished = false;
 
         this.result =
         {
@@ -31,8 +32,13 @@ export class Game
         return slotId === this._currentSlot;
     }
 
-    move(boardIndex)
+    move(slotId, boardIndex)
     {
+        if (this._isFinished || slotId !== this._currentSlot)
+        {
+            return null;
+        }
+
         const player = this._players[this._currentSlot];
         const board = this._board;
         const result = this.result;
@@ -40,20 +46,22 @@ export class Game
         if (!board.setCell(boardIndex, player.mark))
         {
             result.type = RESULT_TYPES.OCCUPIED;
-            result.nextTurn = player.mark;
-            result.index = null;
+            result.index = boardIndex;
             result.mark = null;
+            result.nextTurn = player.mark;
 
             return result;
         }
-        
+
         player.incMove();
-        
+
         result.index = boardIndex;
-        result.mark = player.mark; 
+        result.mark = player.mark;
 
         if (board.hasWinner(player))
         {
+            this._isFinished = true;
+
             result.type = RESULT_TYPES.WIN;
             result.nextTurn = null;
 
@@ -62,6 +70,8 @@ export class Game
 
         if (board.isFull())
         {
+            this._isFinished = true;
+
             result.type = RESULT_TYPES.DRAW;
             result.nextTurn = null;
 
@@ -72,7 +82,7 @@ export class Game
 
         result.type = RESULT_TYPES.MOVE;
         result.nextTurn = this._players[this._currentSlot].mark;
-        
+
         return result;
     }
 
