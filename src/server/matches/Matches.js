@@ -36,10 +36,17 @@ export class Matches
 
         this._waiting.set(id, match);
 
-        match.once("started", () =>
+        match.once("started", (userIds) =>
         {
             this._waiting.delete(match.id);
             this._active.set(match.id, match);
+
+            this._server.onMatchStarted(match.id, userIds);
+        });
+
+        match.on("playerRemoved", (userId) =>
+        {
+            this._server.onMatchPlayerRemoved(match.id, userId);
         });
 
         match.once("destroyed", () =>
