@@ -1,18 +1,10 @@
 import { EventEmitter } from "node:events";
 
 import { Game } from "../../domain/Game.js";
-import { PLAYERS_PER_GAME, RESULT_TYPES } from "../../domain/constants.js";
+import { PLAYERS_PER_GAME, PLAYER_SLOTS, RESULT_TYPES } from "../../domain/constants.js";
 import { MESSAGE_TYPES } from "../../application/messages/constants.js";
-
-import
-{
-    MATCH_TERMINAL_DELAY,
-    STATUS,
-    STATUS_REASON
-}
-from "./constants.js";
-
 import { createMessage } from "../messages/message.js";
+import { MATCH_STATUS, STATUS, STATUS_REASON } from "./constants.js";
 
 
 export class Match extends EventEmitter
@@ -24,183 +16,129 @@ export class Match extends EventEmitter
         this.id = id;
         this._server = server;
 
-        // Persistent user ID → Game slot.
-        this._players = new Map();
+        this._status = MATCH_STATUS.WAITING;
+        this._playerSlots = new Map();
+        this._availableSlotIds = [...PLAYER_SLOTS];
 
         this._game = null;
-        this._nextSlotId = 0;
-        this._finished = false;
-        this._destroyed = false;
     }
 
-    hasPlayer(userId)
+    getStatus()
     {
-        return this._players.has(userId);
+        return this._status;
+    }
+
+    isWaiting()
+    {
+        return this._status === MATCH_STATUS.WAITING;
     }
 
     isPlaying()
     {
-        return this._game !== null &&
-               !this._finished &&
-               !this._destroyed;
+        return this._status === MATCH_STATUS.PLAYING;
+    }
+
+    isDestroyed()
+    {
+        return this._status === MATCH_STATUS.DESTROYED;
     }
 
     addPlayer(connection)
     {
-        if (this._finished || this._destroyed)
+        if (!this.isWaiting())
         {
             return;
         }
 
         const userId = connection.userId;
 
-        if (this._players.has(userId) ||
-            this._players.size === PLAYERS_PER_GAME)
+        if (this._playerSlots.has(userId))
         {
             return;
         }
 
-        const slotId = this._nextSlotId++;
+        const slotId = this._availableSlotIds.pop();
 
-        this._players.set(userId, slotId);
+        this._playerSlots.set(userId, slotId);
 
         connection.join(this.id);
 
-        if (this._players.size === PLAYERS_PER_GAME)
+        if (this._playerSlots.size === PLAYERS_PER_GAME)
         {
             this._game = new Game();
+            this._status = MATCH_STATUS.PLAYING;
 
-            this.emit("started");
+            this.emit("started", [...this._playerSlots.keys()]);
+        }
+        else
+        {
+            this.emit("playerAdded", userId);
         }
     }
 
     makeMove(userId, boardIndex)
     {
-        if (!this.isPlaying())
+        if (!this.isPlaying() || !this._playerSlots.has(userId))
         {
             return;
         }
 
-        const slotId = this._players.get(userId);
+        const slotId = this._playerSlots.get(userId);
+        const result = this._game.move(slotId, boardIndex);
 
-        if (!this._game.isTurn(slotId))
-        {
-            return;
-        }
+        if (result === null) return;
 
-        const result = this._game.move(boardIndex);
-
-        this._handleMoveResult(result);
+        this._handleMoveResult(result, userId);
     }
 
     forfeit(userId)
     {
-        if (!this.isPlaying())
+        if (!this.isPlaying() || !this._playerSlots.has(userId))
         {
             return;
         }
 
-        if (!this._players.has(userId))
-        {
-            return;
-        }
+        const opponentSlotId = this._playerSlots.get(userId) === 0 ? 1 : 0;
+        const opponentUserId = this._getUserIdBySlot(opponentSlotId);
 
-        const opponentId = this._getOpponentId(userId);
-
-        this.end();
-
-        this._sendResult(
-            userId,
-            STATUS.DEFEAT,
-            STATUS_REASON.FORFEITED
+        this._server.send(userId, createMessage(MESSAGE_TYPES.DEFEAT,
+            {
+                status: STATUS.DEFEAT,
+                reason: STATUS_REASON.FORFEITED
+            })
         );
 
-        this._sendResult(
-            opponentId,
-            STATUS.VICTORY,
-            STATUS_REASON.OPPONENT_FORFEITED
+        this._server.send(opponentUserId, createMessage(MESSAGE_TYPES.VICTORY,
+            {
+                status: STATUS.VICTORY,
+                reason: STATUS_REASON.OPPONENT_FORFEITED
+            })
         );
 
         this.destroy();
     }
 
-    // Removes a participant without changing the game result.
-    leave(userId)
-    {
-        const connection = this._server.getUserConnection(userId);
-
-        if (connection)
-        {
-            connection.leave(this.id);
-        }
-
-        const user = this._server.getUser(userId);
-
-        if (user && user.matchId === this.id)
-        {
-            user.setMatchId(null);
-        }
-
-        this._players.delete(userId);
-    }
-
-    // Ends gameplay but keeps the Match until cleanup.
-    end()
-    {
-        if (this._finished || this._destroyed)
-        {
-            return;
-        }
-
-        this._finished = true;
-
-        this.emit("finished");
-    }
-
-    destroy()
-    {
-        if (this._destroyed)
-        {
-            return;
-        }
-
-        const playerIds = [...this._players.keys()];
-
-        for (const userId of playerIds)
-        {
-            this.leave(userId);
-        }
-
-        this._game = null;
-        this._destroyed = true;
-
-        this.emit("destroyed");
-    }
-
-    _handleMoveResult(result)
+    _handleMoveResult(result, userId)
     {
         switch (result.type)
         {
             case RESULT_TYPES.MOVE:
-            case RESULT_TYPES.WIN:
-            case RESULT_TYPES.DRAW:
                 this._sendMove(result);
                 break;
 
-            case RESULT_TYPES.OCCUPIED:
-                this._sendOccupied(result);
+            case RESULT_TYPES.WIN:
+                this._sendMove(result);
+                this._finishWin(userId);
                 break;
-        }
 
-        if (result.type === RESULT_TYPES.WIN)
-        {
-            this._finishWin(result.mark);
-            return;
-        }
+            case RESULT_TYPES.DRAW:
+                this._sendMove(result);
+                this._finishDraw();
+                break;
 
-        if (result.type === RESULT_TYPES.DRAW)
-        {
-            this._finishDraw();
+            case RESULT_TYPES.OCCUPIED:
+                this._sendOccupied(userId, result);
+                break;
         }
     }
 
@@ -213,123 +151,93 @@ export class Match extends EventEmitter
             nextTurn: result.nextTurn
         };
 
-        this._server.broadcast(
-            this.id,
-            createMessage(MESSAGE_TYPES.MOVE, payload)
-        );
+        this._server.broadcast(this.id, createMessage(MESSAGE_TYPES.MOVE, payload));
     }
 
-    _sendOccupied(result)
+    _sendOccupied(userId, result)
     {
-        const payload =
-        {
-            index: result.index,
-            mark: result.mark,
-            nextTurn: result.nextTurn
-        };
+        const payload = { index: result.index };
 
-        this._server.broadcast(
-            this.id,
-            createMessage(MESSAGE_TYPES.OCCUPIED, payload)
-        );
+        this._server.send(userId, createMessage(MESSAGE_TYPES.OCCUPIED, payload));
     }
 
-    _finishWin(winningMark)
+    _finishWin(userId)
     {
-        const winnerId = this._getUserIdBySlot(winningMark);
-        const loserId = this._getOpponentId(winnerId);
+        const winnerSlotId = this._playerSlots.get(userId);
+        const loserSlotId = winnerSlotId === 0 ? 1 : 0;
+        const loserUserId = this._getUserIdBySlot(loserSlotId);
 
-        this.end();
+        this._server.send(userId, createMessage(MESSAGE_TYPES.VICTORY,
+            {
+                status: STATUS.VICTORY,
+                reason: STATUS_REASON.WON
+            })
+        );
 
-        setTimeout(() =>
-        {
-            this._sendResult(
-                winnerId,
-                STATUS.VICTORY,
-                STATUS_REASON.WON
-            );
+        this._server.send(loserUserId, createMessage(MESSAGE_TYPES.DEFEAT,
+            {
+                status: STATUS.DEFEAT,
+                reason: STATUS_REASON.LOST
+            })
+        );
 
-            this._sendResult(
-                loserId,
-                STATUS.DEFEAT,
-                STATUS_REASON.LOST
-            );
-
-            this.destroy();
-        },
-        MATCH_TERMINAL_DELAY);
+        this.destroy();
     }
 
     _finishDraw()
     {
-        this.end();
-
-        setTimeout(() =>
-        {
-            for (const userId of this._players.keys())
+        this._server.broadcast(this.id, createMessage(MESSAGE_TYPES.DRAW,
             {
-                this._sendResult(
-                    userId,
-                    STATUS.DRAW,
-                    STATUS_REASON.DRAW
-                );
-            }
-
-            this.destroy();
-        },
-        MATCH_TERMINAL_DELAY);
-    }
-
-    _sendResult(userId, status, reason)
-    {
-        let messageType;
-
-        switch (status)
-        {
-            case STATUS.VICTORY:
-                messageType = MESSAGE_TYPES.VICTORY;
-                break;
-
-            case STATUS.DEFEAT:
-                messageType = MESSAGE_TYPES.DEFEAT;
-                break;
-
-            case STATUS.DRAW:
-                messageType = MESSAGE_TYPES.DRAW;
-                break;
-        }
-
-        const payload =
-        {
-            status,
-            reason
-        };
-
-        this._server.send(
-            userId,
-            createMessage(messageType, payload)
+                status: STATUS.DRAW,
+                reason: STATUS_REASON.DRAW
+            })
         );
-    }
 
-    _getOpponentId(userId)
-    {
-        for (const playerId of this._players.keys())
-        {
-            if (playerId !== userId)
-            {
-                return playerId;
-            }
-        }
+        this.destroy();
     }
 
     _getUserIdBySlot(slotId)
     {
-        for (const [userId, playerSlotId] of this._players)
+        for (const [userId, playerSlotId] of this._playerSlots)
         {
             if (playerSlotId === slotId)
             {
                 return userId;
             }
         }
+
+        return null;
+    }
+
+    _removePlayer(userId)
+    {
+        if (!this._playerSlots.has(userId)) return;
+
+        const connection = this._server.getUserConnection(userId);
+
+        if (connection)
+        {
+            connection.leave(this.id);
+        }
+
+        this._playerSlots.delete(userId);
+        this.emit("playerRemoved", userId);
+    }
+
+    destroy()
+    {
+        if (this.isDestroyed()) return;
+
+        this._status = MATCH_STATUS.DESTROYED;
+
+        for (const userId of [...this._playerSlots.keys()])
+        {
+            this._removePlayer(userId);
+        }
+
+        this._game = null;
+        this._availableSlotIds = [];
+
+        this.emit("destroyed", this.id);
     }
 }
