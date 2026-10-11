@@ -14,14 +14,14 @@ export class Matches
 
     findMatch()
     {
-        const match = this._findWaitingMatch();
+        let match = this._waiting.values().next().value;
 
-        if (match !== undefined)
+        if (!match)
         {
-            return match;
+            match = this._createMatch();
         }
 
-        return this._createMatch();
+        return match;
     }
 
     getActiveMatch(id)
@@ -36,47 +36,18 @@ export class Matches
 
         this._waiting.set(id, match);
 
-        const onWaitingDestroyed = () =>
-        {
-            this._removeWaitingMatch(id);
-        };
-
-        match.once("destroyed", onWaitingDestroyed);
-
         match.once("started", () =>
         {
-            this._activateMatch(match);
+            this._waiting.delete(match.id);
+            this._active.set(match.id, match);
+        });
 
-            match.off("destroyed", onWaitingDestroyed);
-
-            match.once("destroyed", () =>
-            {
-                this._removeActiveMatch(id);
-            });
+        match.once("destroyed", () =>
+        {
+            this._active.delete(match.id);
+            this._waiting.delete(match.id);
         });
 
         return match;
-    }
-
-    _findWaitingMatch()
-    {
-        return this._waiting.values().next().value;
-    }
-
-    _activateMatch(match)
-    {
-        this._removeWaitingMatch(match.id);
-
-        this._active.set(match.id, match);
-    }
-
-    _removeWaitingMatch(id)
-    {
-        return this._waiting.delete(id);
-    }
-
-    _removeActiveMatch(id)
-    {
-        return this._active.delete(id);
     }
 }
