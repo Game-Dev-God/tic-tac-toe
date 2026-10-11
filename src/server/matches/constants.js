@@ -1,4 +1,9 @@
-export const MATCH_TERMINAL_DELAY = 2000;
+export const MATCH_STATUS =
+{
+    WAITING: 0,
+    PLAYING: 1,
+    DESTROYED: 2
+};
 
 export const STATUS =
 {
