@@ -62,34 +62,6 @@ export class Server
         this._transport.broadcast(roomId, data);
     }
 
-    onMatchStarted(matchId, userIds)
-    {
-        for (const userId of userIds)
-        {
-            const user = this._users.get(userId);
-
-            if (user === undefined || user.matchId !== matchId)
-            {
-                continue;
-            }
-
-            user.setLastActivity(USER_ACTIVITY.PLAYING);
-        }
-    }
-
-    onMatchPlayerRemoved(matchId, userId)
-    {
-        const user = this._users.get(userId);
-
-        if (user === undefined || user.matchId !== matchId)
-        {
-            return;
-        }
-
-        user.setMatchId(null);
-        user.setLastActivity(USER_ACTIVITY.IDLE);
-    }
-
     _initialize()
     {
         const transport = this._transport;
@@ -140,10 +112,6 @@ export class Server
                     message.data
                 );
                 break;
-
-            case MESSAGE_TYPES.FORFEIT:
-                this._handleForfeit(connection);
-                break;
         }
     }
 
@@ -191,34 +159,6 @@ export class Server
         );
     }
 
-    _handleForfeit(connection)
-    {
-        const userId = connection.userId;
-
-        if (userId === null)
-        {
-            return;
-        }
-
-        const user = this._users.get(userId);
-
-        if (user === undefined || user.matchId === null)
-        {
-            return;
-        }
-
-        const match = this._matches.getActiveMatch(
-            user.matchId
-        );
-
-        if (match === undefined)
-        {
-            return;
-        }
-
-        match.forfeit(userId);
-    }
-
     _joinMatch(connection)
     {
         const userId = connection.userId;
@@ -239,6 +179,22 @@ export class Server
 
         user.setMatchId(match.id);
         user.setLastActivity(USER_ACTIVITY.WAITING_MATCH);
+
+        match.once("started", () =>
+        {
+            if (user.matchId === match.id)
+            {
+                user.setLastActivity(USER_ACTIVITY.PLAYING);
+            }
+        });
+
+        match.once("destroyed", () =>
+        {
+            if (user.matchId === null)
+            {
+                user.setLastActivity(USER_ACTIVITY.IDLE);
+            }
+        });
 
         match.addPlayer(connection);
     }
