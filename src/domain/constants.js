@@ -20,6 +20,11 @@ export const BOARD_SIZES = [3, 4];
 export const DEFAULT_BOARD_SIZE = BOARD_SIZES[0];
 
 
+export const PLAYERS_PER_GAME = 2;
+
+export const PLAYER_SLOTS = [1, 0];
+
+
 export const WINNING_LINES =
 {
     3:
@@ -48,6 +53,3 @@ export const WINNING_LINES =
         [3, 6, 9, 12]
     ]
 };
-
-
-export const PLAYERS_PER_GAME = 2;
