@@ -2,7 +2,6 @@ export const MARKS =
 {
     X: 0,
     O: 1,
-    LIST: [0, 1]
 };
 
 
@@ -11,7 +10,7 @@ export const RESULT_TYPES =
     MOVE: 0,
     WIN: 1,
     DRAW: 2,
-    OCCUPIED: 3
+    INVALID: 3
 };
 
 
@@ -24,6 +23,8 @@ export const PLAYERS_PER_GAME = 2;
 
 export const PLAYER_SLOTS = [1, 0];
 
+export const SLOT_ID_1 = PLAYER_SLOTS[1];
+export const SLOT_ID_2 = PLAYER_SLOTS[0];
 
 export const WINNING_LINES =
 {

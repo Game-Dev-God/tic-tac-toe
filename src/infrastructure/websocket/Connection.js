@@ -1,3 +1,5 @@
+import WebSocket from "ws";
+
 export class Connection
 {
     constructor(id, socket, transport)
@@ -18,10 +20,15 @@ export class Connection
     {
         return this._userId;
     }
+    
+    isOpen()
+    {
+        return this._socket.readyState === WebSocket.OPEN;
+    }
 
     getRooms()
     {
-        return this._rooms;
+        return [ ...this._rooms ];
     }
 
     setUserId(userId)
@@ -38,6 +45,11 @@ export class Connection
     {
         this._transport._leave(this, roomId);
     }
+    
+    hasRoom(roomId)
+    {
+        return this._rooms.has(roomId);
+    }
 
     _addRoom(roomId)
     {
@@ -51,7 +63,7 @@ export class Connection
 
     send(data)
     {
-        this._socket.send(data);
+        if (this.isOpen()) this._socket.send(data);
     }
 
     close(code)

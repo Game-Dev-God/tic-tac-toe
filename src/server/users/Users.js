@@ -22,6 +22,7 @@ export class Users
     
         return user;
     }
+    
     get(id)
     {
         return this._users.get(id);

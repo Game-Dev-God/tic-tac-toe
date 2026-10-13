@@ -1,6 +1,6 @@
 export const MATCH_STATUS =
 {
-    WAITING: 0,
+    NONE: 0,
     PLAYING: 1,
     DESTROYED: 2
 };

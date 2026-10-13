@@ -1,13 +1,19 @@
 import { Board } from "./Board.js";
 import { Player } from "./Player.js";
-import { MARKS, RESULT_TYPES } from "./constants.js";
-
+import 
+{ 
+    DEFAULT_BOARD_SIZE, 
+    MARKS, 
+    RESULT_TYPES,
+    SLOT_ID_1,
+    SLOT_ID_2
+} from "./constants.js";
 
 export class Game
 {
-    constructor()
+    constructor(boardSize = DEFAULT_BOARD_SIZE)
     {
-        this._board = new Board();
+        this._board = new Board(boardSize);
 
         this._players =
         [
@@ -15,7 +21,7 @@ export class Game
             new Player(MARKS.O)
         ];
 
-        this._currentSlot = 0;
+        this._currentSlotId = SLOT_ID_1;
         this._isFinished = false;
 
         this.result =
@@ -26,29 +32,42 @@ export class Game
             nextTurn: null
         };
     }
-
-    isTurn(slotId)
+    
+    reset()
     {
-        return slotId === this._currentSlot;
+        const result = this.result;
+        result.type = null;
+        result.index = null;
+        result.mark = null;
+        result.nextTurn = null;
+        
+        this._board.clear();
+        this._currentSlotId = SLOT_ID_1;
+        this._isFinished = false;
+        
+        for (let player of this._players)
+        {
+            player.reset();
+        }
     }
 
     move(slotId, boardIndex)
     {
-        if (this._isFinished || slotId !== this._currentSlot)
+        if (this._isFinished || slotId !== this._currentSlotId)
         {
             return null;
         }
 
-        const player = this._players[this._currentSlot];
+        const player = this._players[this._currentSlotId];
         const board = this._board;
         const result = this.result;
 
         if (!board.setCell(boardIndex, player.mark))
         {
-            result.type = RESULT_TYPES.OCCUPIED;
+            result.type = RESULT_TYPES.INVALID;
             result.index = boardIndex;
             result.mark = null;
-            result.nextTurn = player.mark;
+            result.nextTurn = this._currentSlotId;
 
             return result;
         }
@@ -81,13 +100,15 @@ export class Game
         this._switchTurn();
 
         result.type = RESULT_TYPES.MOVE;
-        result.nextTurn = this._players[this._currentSlot].mark;
+        result.nextTurn = this._currentSlotId;
 
         return result;
     }
 
     _switchTurn()
     {
-        this._currentSlot = this._currentSlot === 0 ? 1 : 0;
+        this._currentSlotId = this._currentSlotId === SLOT_ID_1 
+            ? SLOT_ID_2 
+            : SLOT_ID_1;
     }
 }

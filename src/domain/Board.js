@@ -1,58 +1,73 @@
 import { DEFAULT_BOARD_SIZE, WINNING_LINES } from "./constants.js";
 
-
 export class Board
 {
-    constructor()
+    constructor(size = DEFAULT_BOARD_SIZE)
     {
-        this._size = DEFAULT_BOARD_SIZE;
-        this._cells = Array(this._size * this._size).fill(null);
+        this._size = size;
+        this._cells = Array(size * size).fill(null);
         this._remainingCells = this._cells.length;
-        this.lastIndex = null;
     }
 
     get size()
     {
         return this._size;
     }
+    
+    clear()
+    {
+        this._cells.fill(null);
+        this._remainingCells = this._cells.length;
+    }
+
+    _isValidIndex(index)
+    {
+        return index >= 0 && index < this._cells.length;
+    }
 
     getCell(index)
     {
+        if (!this._isValidIndex(index)) return null;
+        
         return this._cells[index];
     }
 
     setCell(index, mark)
     {
-        if (this._cells[index] !== null)
+        if (!this._isValidIndex(index) || this._cells[index] !== null)
         {
             return false;
         }
 
         this._cells[index] = mark;
         this._remainingCells--;
-        this.lastIndex = index;
-
+        
         return true;
     }
 
     hasWinner(player)
     {
-        if (player.moves < 3)
+        if (player.moves < this._size) return false;
+        
+        const lines = WINNING_LINES[this._size];
+        
+        for (const row of lines)
         {
-            return false;
-        }
-
-        return WINNING_LINES[this._size].some(
-            (line) =>
+            let hasWin = true;
+            
+            for (const index of row)
             {
-                return line.every(
-                    (index) =>
-                    {
-                        return this._cells[index] === player.mark;
-                    }
-                );
+                if (this._cells[index] !== player.mark)
+                {
+                    hasWin = false;
+                    break;
+                }
             }
-        );
+            
+            if (hasWin) return true;
+        }
+        
+        return false;
     }
 
     isFull()

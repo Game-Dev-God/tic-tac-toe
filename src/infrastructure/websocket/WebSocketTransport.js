@@ -22,6 +22,11 @@ export class WebSocketTransport extends EventEmitter
     {
         return this._connections.get(id);
     }
+    
+    getRoom(roomId)
+    {
+        return this._rooms.get(roomId);
+    }
 
     _addConnection(socket)
     {
@@ -67,38 +72,6 @@ export class WebSocketTransport extends EventEmitter
         });
     }
 
-    stop()
-    {
-        if (!this._server)
-        {
-            return Promise.resolve();
-        }
-
-        for (const connection of this._connections.values())
-        {
-            connection.close(1001);
-        }
-
-        this._connections.clear();
-        this._rooms.clear();
-
-        return new Promise((resolve, reject) =>
-            {
-                this._server.close( (error) =>
-                    {
-                        if (error)
-                        {
-                            return reject(error);
-                        }
-
-                        this._server = null;
-
-                        resolve();
-                    }
-                );
-            }
-        );
-    }
 
     join(connection, roomId)
     {
@@ -112,6 +85,7 @@ export class WebSocketTransport extends EventEmitter
         }
 
         room.add(connection);
+        
         connection._addRoom(roomId);
     }
 
@@ -126,6 +100,21 @@ export class WebSocketTransport extends EventEmitter
             connection.send(data);
         }
     }
+    
+    broadcastExcept(sender, roomId, data)
+    {
+        const room = this._rooms.get(roomId);
+    
+        if (!room) return;
+    
+        for (const connection of room)
+        {
+            if (connection !== sender)
+            {
+                connection.send(data);
+            }
+        }
+    }
 
     _leave(connection, roomId)
     {
@@ -134,6 +123,7 @@ export class WebSocketTransport extends EventEmitter
         if (!room) return;
 
         room.delete(connection);
+        
         connection._removeRoom(roomId);
 
         if (room.size === 0)
@@ -144,11 +134,46 @@ export class WebSocketTransport extends EventEmitter
 
     _removeConnection(connection)
     {
-        for (const roomId of [...connection.getRooms()])
+        for (const roomId of connection.getRooms())
         {
             this._leave(connection, roomId);
         }
 
         this._connections.delete(connection.id);
+    }
+    
+    stop()
+    {
+        if (!this._server)
+        {
+            return Promise.resolve();
+        }
+    
+        const server = this._server;
+        const connections = [ ...this._connections.values() ];
+    
+        this._connections.clear();
+        this._rooms.clear();
+    
+        for (const connection of connections)
+        {
+            connection.close(1001);
+        }
+    
+        return new Promise((resolve, reject) =>
+        {
+            server.close(error =>
+            {
+                this._server = null;
+    
+                if (error)
+                {
+                    reject(error);
+                    return;
+                }
+    
+                resolve();
+            });
+        });
     }
 }

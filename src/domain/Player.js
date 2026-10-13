@@ -1,13 +1,28 @@
-export class Player
+export class Player 
 {
-    constructor(mark)
+    constructor(mark) 
     {
-        this.mark = mark;
-        this.moves = 0;
+        this._mark = mark;
+        this._moves = 0;
     }
 
-    incMove()
+    get mark() 
     {
-        this.moves++;
+        return this._mark;
+    }
+
+    get moves() 
+    {
+        return this._moves;
+    }
+
+    incMove() 
+    {
+        this._moves++;
+    }
+
+    reset() 
+    {
+        this._moves = 0;
     }
 }
