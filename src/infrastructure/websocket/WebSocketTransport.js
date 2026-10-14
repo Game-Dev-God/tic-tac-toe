@@ -8,12 +8,11 @@ import { Connection } from "./Connection.js";
 
 export class WebSocketTransport extends EventEmitter
 {
-    constructor(port)
+    constructor(httpServer)
     {
         super();
-
-        this._port = port;
-        this._server = null;
+    
+        this._server = new WebSocketServer({ server: httpServer });
         this._connections = new Map();
         this._rooms = new Map();
     }
@@ -40,8 +39,6 @@ export class WebSocketTransport extends EventEmitter
 
     start()
     {
-        this._server = new WebSocketServer({port: this._port});
-
         this._server.on("error", (error) =>
         {
             this.emit("error", null, error);
@@ -144,28 +141,20 @@ export class WebSocketTransport extends EventEmitter
     
     stop()
     {
-        if (!this._server)
-        {
-            return Promise.resolve();
-        }
-    
-        const server = this._server;
         const connections = [ ...this._connections.values() ];
-    
-        this._connections.clear();
-        this._rooms.clear();
     
         for (const connection of connections)
         {
             connection.close(1001);
         }
     
+        this._connections.clear();
+        this._rooms.clear();
+    
         return new Promise((resolve, reject) =>
         {
-            server.close(error =>
+            this._server.close(error =>
             {
-                this._server = null;
-    
                 if (error)
                 {
                     reject(error);

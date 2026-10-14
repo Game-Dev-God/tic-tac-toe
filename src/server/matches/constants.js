@@ -2,7 +2,7 @@ export const MATCH_STATUS =
 {
     NONE: 0,
     PLAYING: 1,
-    DESTROYED: 2
+    FINISHED: 2
 };
 
 export const STATUS =

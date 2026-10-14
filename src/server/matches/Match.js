@@ -74,7 +74,7 @@ export class Match extends EventEmitter
 
         this._game = new Game(this._boardSize);
 
-        this._snapshot.initBoard(this._boardSize, SLOT_ID_1);
+        this._snapshot.initBoard(this._boardSize, this._game.getCurrentSlotId());
 
         this._snapshot.addPlayer(player1);
         this._snapshot.addPlayer(player2);
@@ -125,9 +125,9 @@ export class Match extends EventEmitter
                 };
 
                 this._snapshot.update(
-                    payload.index,
-                    payload.mark,
-                    payload.nextTurn
+                    result.index,
+                    result.mark,
+                    result.nextTurn
                 );
 
                 this.emit("move", payload);
@@ -144,7 +144,11 @@ export class Match extends EventEmitter
                 {
                     this._finishDraw();
                 }
-
+                
+                const [user1Id, user2Id] = this._players.keys();
+                
+                this.emit("finished", user1Id, user2Id, result.type);
+                
                 return;
             }
         }

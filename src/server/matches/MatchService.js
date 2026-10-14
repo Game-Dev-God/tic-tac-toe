@@ -59,14 +59,14 @@ export class MatchService
         const userRecord1 = this._server.getUser(user1.id);
         const userRecord2 = this._server.getUser(user2.id);
         
-        if (userRecord1) userRecord1.setMatchId(matchId).setPlaying();
-        if (userRecord2) userRecord2.setMatchId(matchId).setPlaying();
+        userRecord1?.setMatchId(matchId).setPlaying();
+        userRecord2?.setMatchId(matchId).setPlaying();
     
         const connection1 = this._server.getUserConnection(user1.id);
         const connection2 = this._server.getUserConnection(user2.id);
     
-        if (connection1) connection1.join(matchId);
-        if (connection2) connection2.join(matchId);
+        connection1?.join(matchId);
+        connection2?.join(matchId);
     
         match.on("started", (user1Id, user2Id) =>
         {
@@ -99,7 +99,7 @@ export class MatchService
         {
             this._server.send(
                 userId,
-                createMessage(MESSAGE_TYPES.OCCUPIED, payload)
+                createMessage(MESSAGE_TYPES.INVALID_MOVE, payload)
             );
         });
     
@@ -126,8 +126,35 @@ export class MatchService
                 createMessage(MESSAGE_TYPES.DRAW, payload)
             );
         });
-    
+        
+        match.on("finished", (user1Id, user2Id) =>
+        {
+            this._finishMatch(matchId, user1Id, user2Id);
+        });
+            
         match.start(user1, user2);
     }
-
+    
+    _finishMatch(matchId, user1Id, user2Id)
+    {
+        for (const userId of [user1Id, user2Id])
+        {
+            const user = this._server.getUser(userId);
+    
+            if (!user) continue;
+            
+            user.setMatchId(null);
+    
+            if (user.isOnline())
+            {
+                user.setIdle();
+            }
+    
+            const connection = this._server.getUserConnection(userId);
+    
+            connection?.leave(matchId);
+        }
+    
+        this._matches.delete(matchId);
+    }
 }

@@ -12,12 +12,12 @@ import
 
 export class GameServer
 {
-    constructor(port)
+    constructor(httpServer)
     {
         this._users = new Users();
         this._matchService = new MatchService(this);
-        this._transport = new WebSocketTransport(port);
-
+        this._transport = new WebSocketTransport(httpServer);
+    
         this._setupListeners();
     }
     

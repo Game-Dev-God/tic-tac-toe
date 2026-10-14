@@ -33,6 +33,11 @@ export class Game
         };
     }
     
+    getCurrentSlotId()
+    {
+        return this._currentSlotId;
+    }
+    
     reset()
     {
         const result = this.result;
