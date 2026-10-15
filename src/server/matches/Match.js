@@ -145,7 +145,7 @@ export class Match extends EventEmitter
                     this._finishDraw();
                 }
                 
-                const [user1Id, user2Id] = this._players.keys();
+                const [user1Id, user2Id] = [...this._players.keys()];
                 
                 this.emit("finished", user1Id, user2Id, result.type);
                 

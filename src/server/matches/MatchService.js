@@ -68,9 +68,11 @@ export class MatchService
         connection1?.join(matchId);
         connection2?.join(matchId);
     
+        const server = this._server;
+        
         match.on("started", (user1Id, user2Id) =>
         {
-            this._server.send(
+            server.send(
                 user1Id,
                 createMessage(
                     MESSAGE_TYPES.SNAPSHOT,
@@ -78,7 +80,7 @@ export class MatchService
                 )
             );
     
-            this._server.send(
+            server.send(
                 user2Id,
                 createMessage(
                     MESSAGE_TYPES.SNAPSHOT,
@@ -89,7 +91,7 @@ export class MatchService
     
         match.on("move", (payload) =>
         {
-            this._server.broadcast(
+            server.broadcast(
                 matchId,
                 createMessage(MESSAGE_TYPES.MOVE, payload)
             );
@@ -97,7 +99,7 @@ export class MatchService
     
         match.on("invalidMove", (userId, payload) =>
         {
-            this._server.send(
+            server.send(
                 userId,
                 createMessage(MESSAGE_TYPES.INVALID_MOVE, payload)
             );
@@ -105,7 +107,7 @@ export class MatchService
     
         match.on("victory", (userId, payload) =>
         {
-            this._server.send(
+            server.send(
                 userId,
                 createMessage(MESSAGE_TYPES.VICTORY, payload)
             );
@@ -113,7 +115,7 @@ export class MatchService
     
         match.on("defeat", (userId, payload) =>
         {
-            this._server.send(
+            server.send(
                 userId,
                 createMessage(MESSAGE_TYPES.DEFEAT, payload)
             );
@@ -121,7 +123,7 @@ export class MatchService
     
         match.on("draw", (payload) =>
         {
-            this._server.broadcast(
+            server.broadcast(
                 matchId,
                 createMessage(MESSAGE_TYPES.DRAW, payload)
             );

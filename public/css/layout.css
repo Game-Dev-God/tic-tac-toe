@@ -1,0 +1,166 @@
+.app
+{
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+.app-header
+{
+    width: 100%;
+    padding-block: var(--space-3);
+}
+
+.app-header-content
+{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.app-main
+{
+    display: flex;
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+}
+
+.app-footer
+{
+    width: 100%;
+    padding-block: var(--space-3);
+    text-align: center;
+}
+
+.container
+{
+    width: 100%;
+    max-width: var(--size-content-max);
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+}
+
+.screen
+{
+    display: flex;
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+}
+
+.screen-content
+{
+    display: flex;
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding-block: var(--space-6);
+}
+
+.screen-heading
+{
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.home-content
+{
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.bottom-navigation
+{
+    position: sticky;
+    z-index: var(--layer-sticky);
+    bottom: 0;
+
+    width: 100%;
+    padding-block: var(--space-2);
+    padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+}
+
+.bottom-navigation-content
+{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+
+    width: 100%;
+    max-width: var(--size-content-max);
+    margin-inline: auto;
+    padding-inline: var(--space-3);
+}
+
+.navigation-item
+{
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+
+    padding-block: var(--space-2);
+}
+
+.navigation-icon
+{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+}
+
+.navigation-label
+{
+    text-align: center;
+}
+
+.profile-access
+{
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control-md);
+    height: var(--size-control-md);
+}
+
+.profile-access-icon
+{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-icon-lg);
+    height: var(--size-icon-lg);
+}
+
+@media (min-width: 48rem)
+{
+    .app-header
+    {
+        padding-block: var(--space-4);
+    }
+
+    .container
+    {
+        padding-inline: var(--space-6);
+    }
+
+    .screen-content
+    {
+        padding-block: var(--space-7);
+    }
+
+    .bottom-navigation-content
+    {
+        padding-inline: var(--space-6);
+    }
+}

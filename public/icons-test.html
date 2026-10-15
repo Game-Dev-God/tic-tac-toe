@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Icon System Test</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <style>
+        .icon-grid
+        {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--space-3);
+            padding: var(--space-4);
+        }
+
+        .icon-card
+        {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3);
+            border: var(--border-width) solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            color: var(--color-secondary);
+        }
+
+        .icon-card .icon
+        {
+            width: var(--size-icon-lg);
+            height: var(--size-icon-lg);
+        }
+
+        .icon-name
+        {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-xs);
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1 style="padding: var(--space-4)">Icon system test</h1>
+        <div class="icon-grid">
+            <div class="icon-card"><span class="icon icon-home icon-lg" aria-hidden="true"></span><span class="icon-name">home</span></div>
+            <div class="icon-card"><span class="icon icon-rank" aria-hidden="true"></span><span class="icon-name">rank</span></div>
+            <div class="icon-card"><span class="icon icon-profile" aria-hidden="true"></span><span class="icon-name">profile</span></div>
+            <div class="icon-card"><span class="icon icon-settings" aria-hidden="true"></span><span class="icon-name">settings</span></div>
+            <div class="icon-card"><span class="icon icon-board" aria-hidden="true"></span><span class="icon-name">board</span></div>
+            <div class="icon-card"><span class="icon icon-mark-x" aria-hidden="true"></span><span class="icon-name">mark-x</span></div>
+            <div class="icon-card"><span class="icon icon-mark-o" aria-hidden="true"></span><span class="icon-name">mark-o</span></div>
+            <div class="icon-card"><span class="icon icon-match" aria-hidden="true"></span><span class="icon-name">match</span></div>
+            <div class="icon-card"><span class="icon icon-close" aria-hidden="true"></span><span class="icon-name">close</span></div>
+            <div class="icon-card"><span class="icon icon-back" aria-hidden="true"></span><span class="icon-name">back</span></div>
+            <div class="icon-card"><span class="icon icon-more" aria-hidden="true"></span><span class="icon-name">more</span></div>
+            <div class="icon-card"><span class="icon icon-search" aria-hidden="true"></span><span class="icon-name">search</span></div>
+            <div class="icon-card"><span class="icon icon-check" aria-hidden="true"></span><span class="icon-name">check</span></div>
+            <div class="icon-card"><span class="icon icon-refresh" aria-hidden="true"></span><span class="icon-name">refresh</span></div>
+            <div class="icon-card"><span class="icon icon-clock" aria-hidden="true"></span><span class="icon-name">clock</span></div>
+            <div class="icon-card"><span class="icon icon-wifi" aria-hidden="true"></span><span class="icon-name">wifi</span></div>
+            <div class="icon-card"><span class="icon icon-wifi-off" aria-hidden="true"></span><span class="icon-name">wifi-off</span></div>
+            <div class="icon-card"><span class="icon icon-volume" aria-hidden="true"></span><span class="icon-name">volume</span></div>
+            <div class="icon-card"><span class="icon icon-mute" aria-hidden="true"></span><span class="icon-name">mute</span></div>
+            <div class="icon-card"><span class="icon icon-info" aria-hidden="true"></span><span class="icon-name">info</span></div>
+            <div class="icon-card"><span class="icon icon-warning" aria-hidden="true"></span><span class="icon-name">warning</span></div>
+            <div class="icon-card"><span class="icon icon-error" aria-hidden="true"></span><span class="icon-name">error</span></div>
+            <div class="icon-card"><span class="icon icon-help" aria-hidden="true"></span><span class="icon-name">help</span></div>
+            <div class="icon-card"><span class="icon icon-edit" aria-hidden="true"></span><span class="icon-name">edit</span></div>
+            <div class="icon-card"><span class="icon icon-lock" aria-hidden="true"></span><span class="icon-name">lock</span></div>
+            <div class="icon-card"><span class="icon icon-logout" aria-hidden="true"></span><span class="icon-name">logout</span></div>
+            <div class="icon-card"><span class="icon icon-share" aria-hidden="true"></span><span class="icon-name">share</span></div>
+            <div class="icon-card"><span class="icon icon-calendar" aria-hidden="true"></span><span class="icon-name">calendar</span></div>
+            <span class="icon icon-spinner icon-spin" aria-hidden="true"></span>
+            <div class="icon-test-item">
+            <span class="loading-dots" role="status" aria-label="Loading">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </span>
+            <span>Loading dots</span>
+            <span class="icon icon-home icon-sm" aria-hidden="true"></span>
+<span class="icon icon-home icon-md" aria-hidden="true"></span>
+<span class="icon icon-home icon-lg" aria-hidden="true"></span>
+<span class="icon icon-home icon-xl" aria-hidden="true"></span>
+        </div>
+    </main>
+</body>
+</html>

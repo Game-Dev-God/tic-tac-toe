@@ -10,3 +10,7 @@ export const MESSAGE_TYPES =
     INVALID_MOVE: "INVALID_MOVE",
     FORFEIT: "FORFEIT"
 };
+
+export const MESSAGE_TYPE_SET = new Set(
+    Object.values(MESSAGE_TYPES)
+);

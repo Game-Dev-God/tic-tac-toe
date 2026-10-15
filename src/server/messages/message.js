@@ -1,3 +1,5 @@
+import { MESSAGE_TYPE_SET } from "./constants.js";
+
 function createMessage(type, data)
 {
     return JSON.stringify({ type, data });
@@ -10,6 +12,7 @@ function isValidMessage(parsedMessage)
         typeof parsedMessage === "object" &&
         !Array.isArray(parsedMessage) &&
         typeof parsedMessage.type === "string" &&
+        MESSAGE_TYPE_SET.has(parsedMessage.type) &&
         parsedMessage.data !== null &&
         typeof parsedMessage.data === "object" &&
         !Array.isArray(parsedMessage.data)

@@ -1,254 +1,254 @@
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
-import { createServer } from "node:http";
-import express from "express";
-import WebSocket from "ws";
+import { describe, expect, jest, test } from "@jest/globals";
 
-import { GameServer } from "../src/server/GameServer.js";
+import { MatchService } from "../src/server/matches/MatchService.js";
+import { User } from "../src/server/users/User.js";
+import { USER_STATUS, USER_ACTIVITY } from "../src/server/users/constants.js";
 import { MESSAGE_TYPES } from "../src/server/messages/constants.js";
+import { parseMessage } from "../src/server/messages/message.js";
 
-describe("GameServer integration", () =>
+describe("MatchService", () =>
 {
-    let httpServer;
-    let gameServer;
-    let address;
-
-    const clients = [];
-
-    function connectClient()
+    function createFixture()
     {
-        return new Promise((resolve, reject) =>
+        const users = new Map();
+        const connections = new Map();
+
+        const server =
         {
-            const client = new WebSocket(address);
+            getUser: jest.fn(userId => users.get(userId)),
+            getUserConnection: jest.fn(userId => connections.get(userId)),
+            send: jest.fn(),
+            broadcast: jest.fn(),
+            broadcastExcept: jest.fn()
+        };
 
-            client.once("open", () =>
-            {
-                clients.push(client);
-                resolve(client);
-            });
+        const service = new MatchService(server);
 
-            client.once("error", reject);
-        });
-    }
-
-    function sendMessage(client, type, data)
-    {
-        client.send(JSON.stringify({ type, data }));
-    }
-
-    function waitForMessage(client, expectedType)
-    {
-        return new Promise((resolve, reject) =>
+        function addUser(id, name)
         {
-            const onMessage = (rawMessage) =>
+            const user = new User(id, name);
+            user.setStatus(USER_STATUS.ONLINE);
+
+            const connection =
             {
-                let message;
-
-                try
-                {
-                    message = JSON.parse(rawMessage.toString());
-                }
-                catch (error)
-                {
-                    cleanup();
-                    reject(error);
-                    return;
-                }
-
-                if (message.type !== expectedType) return;
-
-                cleanup();
-                resolve(message);
+                join: jest.fn(),
+                leave: jest.fn()
             };
 
-            const onError = (error) =>
-            {
-                cleanup();
-                reject(error);
-            };
+            users.set(id, user);
+            connections.set(id, connection);
 
-            const cleanup = () =>
-            {
-                client.off("message", onMessage);
-                client.off("error", onError);
-            };
-
-            client.on("message", onMessage);
-            client.on("error", onError);
-        });
-    }
-
-    function waitForServerProcessing()
-    {
-        return new Promise(resolve => setTimeout(resolve, 50));
-    }
-
-    beforeAll(async () =>
-    {
-        httpServer = createServer(express());
-        gameServer = new GameServer(httpServer);
-
-        gameServer.start();
-
-        await new Promise((resolve, reject) =>
-        {
-            httpServer.once("error", reject);
-            httpServer.listen(0, "127.0.0.1", resolve);
-        });
-
-        address = `ws://127.0.0.1:${httpServer.address().port}`;
-    });
-
-    afterAll(async () =>
-    {
-        for (const client of clients)
-        {
-            if (client.readyState === WebSocket.OPEN)
-            {
-                client.close();
-            }
+            return { user, connection };
         }
 
-        await Promise.all(
-            clients.map(client =>
-                new Promise(resolve =>
-                {
-                    if (client.readyState === WebSocket.CLOSED)
-                    {
-                        resolve();
-                        return;
-                    }
+        return { service, server, users, connections, addUser };
+    }
 
-                    client.once("close", resolve);
-                })
-            )
+    function startMatch(fixture)
+    {
+        const player1 = fixture.addUser("player-1", "Player One");
+        const player2 = fixture.addUser("player-2", "Player Two");
+
+        fixture.service.addToQueue(player1.user);
+        fixture.service.addToQueue(player2.user);
+
+        return { player1, player2 };
+    }
+
+    function getSentMessage(server, userId, type)
+    {
+        const call = server.send.mock.calls.find(
+            ([recipientId, rawMessage]) =>
+            {
+                if (recipientId !== userId) return false;
+
+                return parseMessage(rawMessage).type === type;
+            }
         );
 
-        await gameServer.stop();
+        return call ? parseMessage(call[1]) : undefined;
+    }
 
-        await new Promise((resolve, reject) =>
-        {
-            httpServer.close(error =>
-            {
-                if (error)
-                {
-                    reject(error);
-                    return;
-                }
+    test("marks a queued user as waiting and removes them from the queue", () =>
+    {
+        const fixture = createFixture();
+        const { user } = fixture.addUser("player-1", "Player One");
 
-                resolve();
-            });
-        });
+        fixture.service.addToQueue(user);
+
+        expect(user.isWaitingMatch()).toBe(true);
+        expect(fixture.service.removeFromQueue(user.id)).toBe(true);
+        expect(fixture.service.removeFromQueue(user.id)).toBe(false);
     });
 
-    test(
-        "identifies players, starts a match, broadcasts moves, and reports a winner",
-        async () =>
+    test("creates a match and sends personalized snapshots", () =>
+    {
+        const fixture = createFixture();
+        const { player1, player2 } = startMatch(fixture);
+
+        expect(player1.user.isPlaying()).toBe(true);
+        expect(player2.user.isPlaying()).toBe(true);
+
+        expect(player1.user.matchId).toBeTruthy();
+        expect(player1.user.matchId).toBe(player2.user.matchId);
+
+        const matchId = player1.user.matchId;
+
+        expect(player1.connection.join).toHaveBeenCalledWith(matchId);
+        expect(player2.connection.join).toHaveBeenCalledWith(matchId);
+
+        expect(fixture.server.send).toHaveBeenCalledTimes(2);
+
+        const snapshot1 = getSentMessage(
+            fixture.server,
+            player1.user.id,
+            MESSAGE_TYPES.SNAPSHOT
+        );
+
+        const snapshot2 = getSentMessage(
+            fixture.server,
+            player2.user.id,
+            MESSAGE_TYPES.SNAPSHOT
+        );
+
+        expect(snapshot1.data.name).toBe("Player One");
+        expect(snapshot1.data.opponent.name).toBe("Player Two");
+
+        expect(snapshot2.data.name).toBe("Player Two");
+        expect(snapshot2.data.opponent.name).toBe("Player One");
+    });
+
+    test("broadcasts valid moves and sends invalid moves only to the requester", () =>
+    {
+        const fixture = createFixture();
+        const { player1, player2 } = startMatch(fixture);
+        const matchId = player1.user.matchId;
+
+        fixture.server.broadcast.mockClear();
+        fixture.server.send.mockClear();
+
+        fixture.service.makeMove(matchId, player1.user.id, 0);
+
+        expect(fixture.server.broadcast).toHaveBeenCalledTimes(1);
+
+        const moveMessage = parseMessage(
+            fixture.server.broadcast.mock.calls[0][1]
+        );
+
+        expect(moveMessage.type).toBe(MESSAGE_TYPES.MOVE);
+        expect(moveMessage.data.index).toBe(0);
+
+        fixture.service.makeMove(matchId, player2.user.id, 3);
+
+        expect(fixture.server.broadcast).toHaveBeenCalledTimes(2);
+
+        fixture.server.broadcast.mockClear();
+        fixture.server.send.mockClear();
+
+        fixture.service.makeMove(matchId, player1.user.id, 3);
+
+        expect(fixture.server.broadcast).not.toHaveBeenCalled();
+
+        expect(getSentMessage(
+            fixture.server,
+            player1.user.id,
+            MESSAGE_TYPES.INVALID_MOVE
+        )).toEqual(
         {
-            const playerOne = await connectClient();
-            const playerTwo = await connectClient();
+            type: MESSAGE_TYPES.INVALID_MOVE,
+            data: { index: 3 }
+        });
 
-            sendMessage(playerOne, MESSAGE_TYPES.IDENTIFY,
-            {
-                id: "player-1",
-                name: "Player One"
-            });
+        expect(getSentMessage(
+            fixture.server,
+            player2.user.id,
+            MESSAGE_TYPES.INVALID_MOVE
+        )).toBeUndefined();
+    });
 
-            sendMessage(playerTwo, MESSAGE_TYPES.IDENTIFY,
-            {
-                id: "player-2",
-                name: "Player Two"
-            });
+    test("ignores moves for a nonexistent match", () =>
+    {
+        const fixture = createFixture();
 
-            await waitForServerProcessing();
+        expect(() =>
+        {
+            fixture.service.makeMove("missing-match", "player-1", 0);
+        }).not.toThrow();
 
-            const snapshotOnePromise = waitForMessage(
-                playerOne,
-                MESSAGE_TYPES.SNAPSHOT
-            );
+        expect(fixture.server.broadcast).not.toHaveBeenCalled();
+        expect(fixture.server.send).not.toHaveBeenCalled();
+    });
 
-            const snapshotTwoPromise = waitForMessage(
-                playerTwo,
-                MESSAGE_TYPES.SNAPSHOT
-            );
+    test("sends victory and defeat messages and cleans up a finished match", () =>
+    {
+        const fixture = createFixture();
+        const { player1, player2 } = startMatch(fixture);
+        const matchId = player1.user.matchId;
 
-            sendMessage(playerOne, MESSAGE_TYPES.FIND_MATCH, {});
-            sendMessage(playerTwo, MESSAGE_TYPES.FIND_MATCH, {});
+        fixture.server.send.mockClear();
+        fixture.server.broadcast.mockClear();
 
-            const [snapshotOne, snapshotTwo] = await Promise.all([
-                snapshotOnePromise,
-                snapshotTwoPromise
-            ]);
+        const moves =
+        [
+            [player1.user.id, 0],
+            [player2.user.id, 3],
+            [player1.user.id, 1],
+            [player2.user.id, 4],
+            [player1.user.id, 2]
+        ];
 
-            expect(snapshotOne.data.name).toBe("Player One");
-            expect(snapshotOne.data.opponent.name).toBe("Player Two");
-            expect(snapshotTwo.data.name).toBe("Player Two");
-            expect(snapshotTwo.data.opponent.name).toBe("Player One");
+        for (const [userId, index] of moves)
+        {
+            fixture.service.makeMove(matchId, userId, index);
+        }
 
-            const moves =
-            [
-                [playerOne, 0],
-                [playerTwo, 3],
-                [playerOne, 1],
-                [playerTwo, 4]
-            ];
+        expect(getSentMessage(
+            fixture.server,
+            player1.user.id,
+            MESSAGE_TYPES.VICTORY
+        )).toBeDefined();
 
-            for (const [client, index] of moves)
-            {
-                const playerOneMovePromise = waitForMessage(
-                    playerOne,
-                    MESSAGE_TYPES.MOVE
-                );
+        expect(getSentMessage(
+            fixture.server,
+            player2.user.id,
+            MESSAGE_TYPES.DEFEAT
+        )).toBeDefined();
 
-                const playerTwoMovePromise = waitForMessage(
-                    playerTwo,
-                    MESSAGE_TYPES.MOVE
-                );
+        for (const { user, connection } of [player1, player2])
+        {
+            expect(user.matchId).toBeNull();
+            expect(user.isIdle()).toBe(true);
+            expect(connection.leave).toHaveBeenCalledWith(matchId);
+        }
 
-                sendMessage(client, MESSAGE_TYPES.MOVE, { index });
+        expect(fixture.service._matches.has(matchId)).toBe(false);
+    });
 
-                const [moveOne, moveTwo] = await Promise.all([
-                    playerOneMovePromise,
-                    playerTwoMovePromise
-                ]);
+    test("keeps an offline user's status and activity unchanged when a match finishes", () =>
+    {
+        const fixture = createFixture();
+        const { player1, player2 } = startMatch(fixture);
+        const matchId = player1.user.matchId;
 
-                expect(moveOne.data.index).toBe(index);
-                expect(moveTwo.data.index).toBe(index);
-            }
+        player2.user.setStatus(USER_STATUS.OFFLINE);
 
-            const playerOneMovePromise = waitForMessage(
-                playerOne,
-                MESSAGE_TYPES.MOVE
-            );
+        const moves =
+        [
+            [player1.user.id, 0],
+            [player2.user.id, 3],
+            [player1.user.id, 1],
+            [player2.user.id, 4],
+            [player1.user.id, 2]
+        ];
 
-            const playerTwoMovePromise = waitForMessage(
-                playerTwo,
-                MESSAGE_TYPES.MOVE
-            );
+        for (const [userId, index] of moves)
+        {
+            fixture.service.makeMove(matchId, userId, index);
+        }
 
-            const victoryPromise = waitForMessage(
-                playerOne,
-                MESSAGE_TYPES.VICTORY
-            );
-
-            const defeatPromise = waitForMessage(
-                playerTwo,
-                MESSAGE_TYPES.DEFEAT
-            );
-
-            sendMessage(playerOne, MESSAGE_TYPES.MOVE, { index: 2 });
-
-            const [moveOne, moveTwo, victory, defeat] = await Promise.all([
-                playerOneMovePromise,
-                playerTwoMovePromise,
-                victoryPromise,
-                defeatPromise
-            ]);
-
-            expect(moveOne.data.index).toBe(2);
-            expect(moveTwo.data.index).toBe(2);
-            expect(victory.data.reason).toBeDefined();
-            expect(defeat.data.reason).toBeDefined();
-        },
-        10000
-    );
+        expect(player2.user.status).toBe(USER_STATUS.OFFLINE);
+        expect(player2.user.lastActivity).toBe(USER_ACTIVITY.PLAYING);
+        expect(player2.user.matchId).toBeNull();
+        expect(player2.connection.leave).toHaveBeenCalledWith(matchId);
+    });
 });
